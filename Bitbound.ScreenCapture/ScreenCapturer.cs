@@ -15,7 +15,7 @@ using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Bitbound.ScreenCapture;
 
-public interface IScreenCapturer
+public interface IScreenCapturer : IDisposable
 {
     /// <summary>
     /// Gets a capture of a specific display.
@@ -36,7 +36,7 @@ public interface IScreenCapturer
     /// </returns>
     CaptureResult Capture(
         DisplayInfo targetDisplay,
-        bool captureCursor,
+        bool captureCursor = true,
         bool tryUseDirectX = true,
         int directXTimeout = 50,
         bool allowFallbackToBitBlt = true);
@@ -63,7 +63,7 @@ public interface IScreenCapturer
     Rectangle GetVirtualScreenBounds();
 }
 
-internal class ScreenCapturer : IScreenCapturer
+internal sealed class ScreenCapturer : IScreenCapturer
 {
     private readonly IBitmapUtility _bitmapUtility;
     private readonly FrozenSet<DisplayInfo> _displays;
@@ -118,14 +118,14 @@ internal class ScreenCapturer : IScreenCapturer
 
             if (!tryUseDirectX)
             {
-                return GetBitBltGrab(display.MonitorArea, captureCursor);
+                return GetBitBltCapture(display.MonitorArea, captureCursor);
             }
 
-            var result = GetDirectXGrab(display);
+            var result = GetDirectXCapture(display);
 
-            if (result.IsSuccess && !result.HadChanges)
+            if (result.DxTimedOut && allowFallbackToBitBlt)
             {
-                return GetBitBltGrab(display.MonitorArea, captureCursor);
+                return GetBitBltCapture(display.MonitorArea, captureCursor);
             }
 
             if (!result.IsSuccess || result.Bitmap is null || _bitmapUtility.IsEmpty(result.Bitmap))
@@ -135,7 +135,7 @@ internal class ScreenCapturer : IScreenCapturer
                     return result;
                 }
 
-                return GetBitBltGrab(display.MonitorArea, captureCursor);
+                return GetBitBltCapture(display.MonitorArea, captureCursor);
             }
 
             return result;
@@ -149,7 +149,12 @@ internal class ScreenCapturer : IScreenCapturer
 
     public CaptureResult Capture(bool captureCursor = true)
     {
-        return GetBitBltGrab(GetVirtualScreenBounds(), captureCursor);
+        return GetBitBltCapture(GetVirtualScreenBounds(), captureCursor);
+    }
+
+    public void Dispose()
+    {
+        Disposer.TryDispose(_dxOutputs.Values.ToArray());
     }
 
     public IEnumerable<DisplayInfo> GetDisplays() => _displays;
@@ -172,7 +177,7 @@ internal class ScreenCapturer : IScreenCapturer
         return new Rectangle(lowestX, lowestY, highestX - lowestX, highestY - lowestY);
     }
 
-    internal CaptureResult GetBitBltGrab(Rectangle captureArea, bool captureCursor)
+    internal CaptureResult GetBitBltCapture(Rectangle captureArea, bool captureCursor)
     {
         var hwnd = HWND.Null;
         var screenDc = new HDC();
@@ -214,7 +219,7 @@ internal class ScreenCapturer : IScreenCapturer
                 }
             }
 
-            return CaptureResult.Ok(bitmap);
+            return CaptureResult.Ok(bitmap, false);
         }
         catch (Exception ex)
         {
@@ -227,7 +232,7 @@ internal class ScreenCapturer : IScreenCapturer
         }
     }
 
-    internal CaptureResult GetDirectXGrab(DisplayInfo display)
+    internal CaptureResult GetDirectXCapture(DisplayInfo display)
     {
         if (!_dxOutputs.TryGetValue(display.DeviceName, out var dxOutput))
         {
@@ -300,11 +305,15 @@ internal class ScreenCapturer : IScreenCapturer
                 default:
                     break;
             }
-            return CaptureResult.Ok(bitmap);
+            return CaptureResult.Ok(bitmap, true);
+        }
+        catch (COMException ex) when (ex.Message.StartsWith("The timeout value has elapsed"))
+        {
+            return CaptureResult.TimedOut();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error while grabbing with DirectX.");
+            _logger.LogError(ex, "Error while capturing with DirectX.");
             return CaptureResult.Fail(ex);
         }
         finally

@@ -4,12 +4,22 @@ namespace Bitbound.ScreenCapture.Extensions;
 public static class IServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds <see cref="IScreenCapturer"/> as a transient service.
+    /// Adds the following services with the specified lifetimes:
+    /// <list type="bullet">
+    /// <item>
+    ///   <see cref="IScreenCapturer"/> as Transient
+    /// </item>
+    /// <item>
+    ///   <see cref="IBitmapUtility"/> as Singleton
+    /// </item>
+    /// </list>
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
     public static IServiceCollection AddScreenCapturer(this IServiceCollection services)
     {
-        return services.AddTransient<IScreenCapturer, ScreenCapturer>();
+        return services
+            .AddSingleton<IBitmapUtility, BitmapUtility>()
+            .AddTransient<IScreenCapturer, ScreenCapturer>();
     }
 }

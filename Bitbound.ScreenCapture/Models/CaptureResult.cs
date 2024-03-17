@@ -8,16 +8,16 @@ public sealed class CaptureResult : IDisposable
 {
     public Bitmap? Bitmap { get; init; }
 
+    public bool DxTimedOut { get; init; }
     public Exception? Exception { get; init; }
     public string FailureReason { get; init; } = string.Empty;
-
-    [MemberNotNull(nameof(Bitmap))]
-    public bool HadChanges { get; init; }
 
     [MemberNotNullWhen(true, nameof(Exception))]
     public bool HadException => Exception is not null;
 
+    [MemberNotNull(nameof(Bitmap))]
     public bool IsSuccess { get; init; }
+    public bool IsUsingGpu { get; init; }
 
     public void Dispose()
     {
@@ -32,7 +32,7 @@ public sealed class CaptureResult : IDisposable
             return new CaptureResult()
             {
                 FailureReason = "Timed out while waiting for the next frame.",
-                IsSuccess = true
+                DxTimedOut = true
             };
         }
         return new CaptureResult()
@@ -63,17 +63,26 @@ public sealed class CaptureResult : IDisposable
         return new CaptureResult()
         {
             FailureReason = "No frames were accumulated.",
-            IsSuccess = true,
+            DxTimedOut = true,
         };
     }
 
-    internal static CaptureResult Ok(Bitmap bitmap)
+    internal static CaptureResult TimedOut()
+    {
+        return new CaptureResult()
+        {
+            FailureReason = "Timed out while waiting for next frame",
+            DxTimedOut = true,
+        };
+    }
+
+    internal static CaptureResult Ok(Bitmap bitmap, bool isUsingGpu)
     {
         return new CaptureResult()
         {
             Bitmap = bitmap,
-            HadChanges = true,
             IsSuccess = true,
+            IsUsingGpu = isUsingGpu
         };
     }
 }

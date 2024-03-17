@@ -1,5 +1,6 @@
 ﻿using Bitbound.ScreenCapture.Extensions;
 using Bitbound.ScreenCapture.Models;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -10,72 +11,92 @@ namespace Bitbound.ScreenCapture.Helpers;
 
 internal static class DxOutputGenerator
 {
+    private static readonly ConcurrentDictionary<string, DxOutput> _outputs = new();
+
     public static DxOutput[] GetDxOutputs()
     {
-        var outputs = new List<DxOutput>();
-
-        var factoryGuid = typeof(IDXGIFactory1).GUID;
-        var factoryResult = PInvoke.CreateDXGIFactory1(factoryGuid, out var factoryObj);
-
-        var factory = (IDXGIFactory1)factoryObj;
-        var adapters = factory.GetAdapters();
-
-        foreach (var adapter in adapters)
+        try
         {
-            foreach (var output in adapter.GetOutputs())
+            var outputs = new List<DxOutput>();
+
+            var factoryGuid = typeof(IDXGIFactory1).GUID;
+            var factoryResult = PInvoke.CreateDXGIFactory1(factoryGuid, out var factoryObj);
+
+            var factory = (IDXGIFactory1)factoryObj;
+            var adapters = factory.GetAdapters();
+
+            foreach (var adapter in adapters)
             {
-                unsafe
+                foreach (var output in adapter.GetOutputs())
                 {
-                    output.GetDesc(out var outputDescription);
-                    var bounds = outputDescription.DesktopCoordinates.ToRectangle();
-
-                    var featureLevel = D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_1;
-                    var featureLevelOut = &featureLevel;
-                    var featureLevelArray = new[]
+                    unsafe
                     {
-                        D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_1,
-                        D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_0
-                    };
+                        output.GetDesc(out var outputDescription);
+                        var deviceName = outputDescription.DeviceName.ToString();
 
-                    fixed (D3D_FEATURE_LEVEL* featureLevelArrayRef = featureLevelArray)
-                    {
-                        PInvoke.D3D11CreateDevice(
-                            pAdapter: adapter,
-                            DriverType: 0,
-                            Software: HMODULE.Null,
-                            Flags: 0,
-                            pFeatureLevels: featureLevelArrayRef,
-                            FeatureLevels: 2,
-                            SDKVersion: 7,
-                            ppDevice: out var device,
-                            pFeatureLevel: featureLevelOut,
-                            ppImmediateContext: out var deviceContext);
+                        if (_outputs.TryGetValue(deviceName, out var cachedOutput) &&
+                            !cachedOutput.IsDisposed)
+                        {
+                            outputs.Add(cachedOutput);
+                            continue;
+                        }
 
-                        var texture2d = DxTextureHelper.Create2dTextureDescription(bounds.Width, bounds.Height);
+                        var bounds = outputDescription.DesktopCoordinates.ToRectangle();
 
-                        output.DuplicateOutput(device, out var outputDuplication);
+                        var featureLevel = D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_1;
+                        var featureLevelOut = &featureLevel;
+                        var featureLevelArray = new[]
+                        {
+                            D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_1,
+                            D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_0
+                        };
 
-                        var dxOutput = new DxOutput(
-                            outputDescription.DeviceName.ToString(),
-                            bounds,
-                            adapter,
-                            device,
-                            deviceContext,
-                            outputDuplication,
+                        fixed (D3D_FEATURE_LEVEL* featureLevelArrayRef = featureLevelArray)
+                        {
+                            PInvoke.D3D11CreateDevice(
+                                pAdapter: adapter,
+                                DriverType: 0,
+                                Software: HMODULE.Null,
+                                Flags: 0,
+                                pFeatureLevels: featureLevelArrayRef,
+                                FeatureLevels: 2,
+                                SDKVersion: 7,
+                                ppDevice: out var device,
+                                pFeatureLevel: featureLevelOut,
+                                ppImmediateContext: out var deviceContext);
 
-                            outputDescription.Rotation);
+                            var texture2d = DxTextureHelper.Create2dTextureDescription(bounds.Width, bounds.Height);
 
-                        outputs.Add(dxOutput);
+                            output.DuplicateOutput(device, out var outputDuplication);
+
+                            var dxOutput = new DxOutput(
+                                deviceName,
+                                bounds,
+                                adapter,
+                                device,
+                                deviceContext,
+                                outputDuplication,
+                                outputDescription.Rotation,
+                                () => _outputs.Remove(deviceName, out _));
+
+                            outputs.Add(dxOutput);
+                            _outputs.AddOrUpdate(deviceName, dxOutput, (k,v) =>
+                            {
+                                v.Dispose();
+                                return dxOutput;
+                            });
+                        }
                     }
                 }
-
             }
 
+            Marshal.FinalReleaseComObject(factoryObj);
+
+            return [.. outputs];
         }
-
-        Marshal.FinalReleaseComObject(factoryObj);
-
-        return [.. outputs];
-
+        catch
+        {
+            return [];
+        }
     }
 }

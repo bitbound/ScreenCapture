@@ -143,7 +143,7 @@ public class BitmapUtility : IBitmapUtility
         var height = bounds.Height;
         var width = bounds.Width;
 
-        BitmapData bd = new();
+        BitmapData? bd = null;
 
         try
         {
@@ -187,7 +187,10 @@ public class BitmapUtility : IBitmapUtility
         {
             try
             {
-                bitmap.UnlockBits(bd);
+                if (bd is not null)
+                {
+                    bitmap.UnlockBits(bd);
+                }
             }
             catch { }
         }

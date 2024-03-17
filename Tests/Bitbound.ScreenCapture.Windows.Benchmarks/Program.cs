@@ -1,6 +1,7 @@
 ﻿//using BenchmarkDotNet.Configs;
 //using BenchmarkDotNet.Running;
 //using Bitbound.ScreenCapture.Windows.Benchmarks;
+using Bitbound.ScreenCapture;
 using Bitbound.ScreenCapture.Windows.Benchmarks;
 
 
@@ -8,6 +9,6 @@ using Bitbound.ScreenCapture.Windows.Benchmarks;
 //var summary = BenchmarkRunner.Run<CaptureTests>(config);
 //Console.WriteLine($"{summary}");
 
-
-var test = new CaptureTests();
+using var test = new CaptureTests();
 test.DoCaptures();
+test.DoEncoding();
