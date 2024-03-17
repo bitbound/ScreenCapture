@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Drawing.Imaging;
 
 namespace Bitbound.ScreenCapture.Windows.Benchmarks;
-public sealed class CaptureTests : IDisposable
+public sealed class CaptureTests
 {
     private readonly BitmapUtility _bitmapUtility;
     private readonly IScreenCapturer _capturer;
@@ -16,10 +16,6 @@ public sealed class CaptureTests : IDisposable
         _displays = _capturer.GetDisplays();
     }
 
-    public void Dispose()
-    {
-        _capturer.Dispose();
-    }
 
     //[Benchmark(OperationsPerInvoke = 1)]
     public void DoCaptures()
@@ -55,5 +51,49 @@ public sealed class CaptureTests : IDisposable
 
         var encodeTime = Math.Round(sw.Elapsed.TotalMilliseconds / count, 2);
         Console.WriteLine($"Encode Time: {encodeTime}ms");
+    }
+
+    internal void DoCaptureEncodeAndDiff()
+    {
+        var count = 300;
+        var sw = Stopwatch.StartNew();
+        var display1 = _displays.First(x => x.DeviceName == "\\\\.\\DISPLAY1");
+        CaptureResult? lastResult = null;
+        byte[] bytes = [];
+
+        for (var i = 0; i < count; i++)
+        {
+            var result = _capturer.Capture(display1, true, tryUseDirectX: true, allowFallbackToBitBlt: true);
+            if (!result.IsSuccess)
+            {
+                continue;
+            }
+
+            try
+            {
+                var diffArea = _bitmapUtility.GetChangedArea(result.Bitmap, lastResult?.Bitmap);
+                if (!diffArea.IsSuccess)
+                {
+                    continue;
+                }
+
+                if (diffArea.Value.IsEmpty)
+                {
+                    continue;
+                }
+
+                using var cropped = _bitmapUtility.CropBitmap(result.Bitmap, diffArea.Value);
+                bytes = _bitmapUtility.Encode(cropped, ImageFormat.Jpeg);
+
+            }
+            finally
+            {
+                lastResult?.Dispose();
+                lastResult = result;
+            }
+        }
+
+        var fps = Math.Round(count / sw.Elapsed.TotalSeconds);
+        Console.WriteLine($"FPS: {fps}");
     }
 }

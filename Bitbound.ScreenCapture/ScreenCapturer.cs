@@ -1,7 +1,6 @@
 ﻿using Bitbound.ScreenCapture.Helpers;
 using Bitbound.ScreenCapture.Models;
 using Microsoft.Extensions.Logging;
-using System.Collections.Frozen;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.CompilerServices;
@@ -15,7 +14,7 @@ using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Bitbound.ScreenCapture;
 
-public interface IScreenCapturer : IDisposable
+public interface IScreenCapturer
 {
     /// <summary>
     /// Gets a capture of a specific display.
@@ -66,17 +65,12 @@ public interface IScreenCapturer : IDisposable
 internal sealed class ScreenCapturer : IScreenCapturer
 {
     private readonly IBitmapUtility _bitmapUtility;
-    private readonly FrozenSet<DisplayInfo> _displays;
-
-    private readonly FrozenDictionary<string, DxOutput> _dxOutputs;
     private readonly ILogger<ScreenCapturer> _logger;
 
     public ScreenCapturer(IBitmapUtility bitmapUtility, ILogger<ScreenCapturer> logger)
     {
         _bitmapUtility = bitmapUtility;
         _logger = logger;
-        _displays = DisplaysEnumerationHelper.GetDisplays().ToFrozenSet();
-        _dxOutputs = DxOutputGenerator.GetDxOutputs().ToFrozenDictionary(x => x.DeviceName);
     }
 
     private ScreenCapturer(IBitmapUtility bitmapUtility, ILoggerFactory? loggerFactory)
@@ -90,13 +84,11 @@ internal sealed class ScreenCapturer : IScreenCapturer
 
         var logger = loggerFactory.CreateLogger<ScreenCapturer>();
         _logger = logger;
-        _displays = DisplaysEnumerationHelper.GetDisplays().ToFrozenSet();
-        _dxOutputs = DxOutputGenerator.GetDxOutputs().ToFrozenDictionary(x => x.DeviceName);
     }
 
 
     /// <summary>
-    /// Creates a new capturer.  The returned object should be disposed after use.
+    /// Creates a new capturer.
     /// </summary>
     public static IScreenCapturer CreateDefault(ILoggerFactory? loggerFactory = null) => new ScreenCapturer(new BitmapUtility(), loggerFactory);
 
@@ -152,21 +144,18 @@ internal sealed class ScreenCapturer : IScreenCapturer
         return GetBitBltCapture(GetVirtualScreenBounds(), captureCursor);
     }
 
-    public void Dispose()
-    {
-        Disposer.TryDispose(_dxOutputs.Values.ToArray());
-    }
-
-    public IEnumerable<DisplayInfo> GetDisplays() => _displays;
+    public IEnumerable<DisplayInfo> GetDisplays() => DisplaysEnumerationHelper.GetDisplays();
 
     public Rectangle GetVirtualScreenBounds()
     {
+        var displays = DisplaysEnumerationHelper.GetDisplays();
+
         var lowestX = 0;
         var highestX = 0;
         var lowestY = 0;
         var highestY = 0;
 
-        foreach (var display in _displays)
+        foreach (var display in displays)
         {
             lowestX = Math.Min(display.MonitorArea.Left, lowestX);
             highestX = Math.Max(display.MonitorArea.Right, highestX);
@@ -234,11 +223,14 @@ internal sealed class ScreenCapturer : IScreenCapturer
 
     internal CaptureResult GetDirectXCapture(DisplayInfo display)
     {
-        if (!_dxOutputs.TryGetValue(display.DeviceName, out var dxOutput))
+        var dxOutput = DxOutputGenerator
+            .GetDxOutputs()
+            .FirstOrDefault(x => x.DeviceName == display.DeviceName);
+
+        if (dxOutput is null)
         {
             return CaptureResult.Fail("DirectX output not found.");
         }
-
 
         try
         {

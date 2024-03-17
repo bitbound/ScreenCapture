@@ -13,6 +13,11 @@ internal static class DxOutputGenerator
 {
     private static readonly ConcurrentDictionary<string, DxOutput> _outputs = new();
 
+    static DxOutputGenerator()
+    {
+        AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+    }
+
     public static DxOutput[] GetDxOutputs()
     {
         try
@@ -80,7 +85,7 @@ internal static class DxOutputGenerator
                                 () => _outputs.Remove(deviceName, out _));
 
                             outputs.Add(dxOutput);
-                            _outputs.AddOrUpdate(deviceName, dxOutput, (k,v) =>
+                            _outputs.AddOrUpdate(deviceName, dxOutput, (k, v) =>
                             {
                                 v.Dispose();
                                 return dxOutput;
@@ -98,5 +103,10 @@ internal static class DxOutputGenerator
         {
             return [];
         }
+    }
+
+    private static void CurrentDomain_ProcessExit(object? sender, EventArgs e)
+    {
+        Disposer.TryDispose(_outputs.Values.ToArray());
     }
 }

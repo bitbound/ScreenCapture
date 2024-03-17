@@ -7,7 +7,7 @@ public static class IServiceCollectionExtensions
     /// Adds the following services with the specified lifetimes:
     /// <list type="bullet">
     /// <item>
-    ///   <see cref="IScreenCapturer"/> as Transient
+    ///   <see cref="IScreenCapturer"/> as Singleton
     /// </item>
     /// <item>
     ///   <see cref="IBitmapUtility"/> as Singleton
@@ -20,6 +20,6 @@ public static class IServiceCollectionExtensions
     {
         return services
             .AddSingleton<IBitmapUtility, BitmapUtility>()
-            .AddTransient<IScreenCapturer, ScreenCapturer>();
+            .AddSingleton<IScreenCapturer, ScreenCapturer>();
     }
 }

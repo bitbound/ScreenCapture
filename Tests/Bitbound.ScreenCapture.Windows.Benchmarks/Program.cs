@@ -9,6 +9,7 @@ using Bitbound.ScreenCapture.Windows.Benchmarks;
 //var summary = BenchmarkRunner.Run<CaptureTests>(config);
 //Console.WriteLine($"{summary}");
 
-using var test = new CaptureTests();
+var test = new CaptureTests();
 test.DoCaptures();
 test.DoEncoding();
+test.DoCaptureEncodeAndDiff();

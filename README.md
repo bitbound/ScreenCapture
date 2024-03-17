@@ -4,17 +4,21 @@ A library for DirectX-accelerated screenshots and bitmap utilities.
 
 ## Quickstart (register)
 
+These will register `IScreenCapturer` and `IBitmapUtility` as Singleton services.
+
+
 ### Using Dependency Injection:
 
 ```
 using Bitbound.ScreenCapture.Extensions;
 
 services.AddScreenCapturer();
-
 ```
 
 ### Using Hosting Extensions:
 ```
+using Bitbound.ScreenCapture.Extensions;
+
 await Host
 	.CreateDefaultBuilder(args)
 	.ConfigureServices((IServiceCollection services) =>
@@ -25,14 +29,12 @@ await Host
 	.RunAsync();
 ```
 
-These will register `IScreenCapturer` as a transient service and `IBitmapUtility` as a singleton.
-
-`IScreenCapturer` should be disposed after use.
-
 
 ### Without Dependency Injection:
 ```
-using var capturer = ScreenCapturer.CreateDefault();
+using Bitbound.ScreenCapture
+
+var capturer = ScreenCapturer.CreateDefault();
 ```
 
 ## Quickstart (capture)
