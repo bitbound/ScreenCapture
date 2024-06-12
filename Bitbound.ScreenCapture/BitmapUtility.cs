@@ -1,6 +1,7 @@
 ﻿using Bitbound.ScreenCapture.Primitives;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Runtime.Versioning;
 
 namespace Bitbound.ScreenCapture;
 

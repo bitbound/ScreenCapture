@@ -107,6 +107,6 @@ internal static class DxOutputGenerator
 
     private static void CurrentDomain_ProcessExit(object? sender, EventArgs e)
     {
-        Disposer.TryDispose(_outputs.Values.ToArray());
+        Disposer.TryDispose([.. _outputs.Values]);
     }
 }

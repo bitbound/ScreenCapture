@@ -41,9 +41,9 @@ var capturer = ScreenCapturer.CreateDefault();
 
 ```
 var displays = capturer.GetDisplays();
-var display1 = _displays.First();
+var display1 = displays.First();
 
-using var result = _capturer.Capture(
+using var result = capturer.Capture(
     targetDisplay: display1,
     captureCursor: true);
 

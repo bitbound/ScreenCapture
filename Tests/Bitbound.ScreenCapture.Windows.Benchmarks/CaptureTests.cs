@@ -30,7 +30,7 @@ public sealed class CaptureTests
         }
 
         var fps = Math.Round(count / sw.Elapsed.TotalSeconds);
-        Console.WriteLine($"FPS: {fps}");
+        Console.WriteLine($"Capture FPS: {fps}");
     }
 
     public void DoEncoding()
@@ -53,7 +53,7 @@ public sealed class CaptureTests
         Console.WriteLine($"Encode Time: {encodeTime}ms");
     }
 
-    internal void DoCaptureEncodeAndDiff()
+    public void DoCaptureEncodeAndDiff()
     {
         var count = 300;
         var sw = Stopwatch.StartNew();
@@ -94,6 +94,6 @@ public sealed class CaptureTests
         }
 
         var fps = Math.Round(count / sw.Elapsed.TotalSeconds);
-        Console.WriteLine($"FPS: {fps}");
+        Console.WriteLine($"Capture + Encode + Diff FPS: {fps}");
     }
 }
