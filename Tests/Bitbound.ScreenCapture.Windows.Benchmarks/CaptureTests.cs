@@ -71,19 +71,30 @@ public sealed class CaptureTests
 
             try
             {
-                var diffArea = _bitmapUtility.GetChangedArea(result.Bitmap, lastResult?.Bitmap);
-                if (!diffArea.IsSuccess)
+                if (result.IsUsingGpu)
                 {
-                    continue;
+                    foreach (var dirtyRect in result.DirtyRects)
+                    {
+                        using var cropped = _bitmapUtility.CropBitmap(result.Bitmap, dirtyRect);
+                        bytes = _bitmapUtility.Encode(cropped, ImageFormat.Jpeg);
+                    }
                 }
-
-                if (diffArea.Value.IsEmpty)
+                else
                 {
-                    continue;
-                }
+                    var diffArea = _bitmapUtility.GetChangedArea(result.Bitmap, lastResult?.Bitmap);
+                    if (!diffArea.IsSuccess)
+                    {
+                        continue;
+                    }
 
-                using var cropped = _bitmapUtility.CropBitmap(result.Bitmap, diffArea.Value);
-                bytes = _bitmapUtility.Encode(cropped, ImageFormat.Jpeg);
+                    if (diffArea.Value.IsEmpty)
+                    {
+                        continue;
+                    }
+
+                    using var cropped = _bitmapUtility.CropBitmap(result.Bitmap, diffArea.Value);
+                    bytes = _bitmapUtility.Encode(cropped, ImageFormat.Jpeg);
+                }
 
             }
             finally

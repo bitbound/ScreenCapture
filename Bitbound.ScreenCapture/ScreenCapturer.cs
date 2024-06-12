@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Direct3D11;
+using Windows.Win32.Graphics.Dxgi;
 using Windows.Win32.Graphics.Dxgi.Common;
 using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -255,8 +256,12 @@ internal sealed class ScreenCapturer : IScreenCapturer
             var bitmapData = bitmap.LockBits(bounds, ImageLockMode.WriteOnly, bitmap.PixelFormat);
             var bitmapDataPointer = bitmapData.Scan0;
 
+            RECT[] dirtyRects;
+
             unsafe
             {
+                dirtyRects = GetDirtyRects(outputDuplication);
+
                 var textureDescription = DxTextureHelper.Create2dTextureDescription(bounds.Width, bounds.Height);
                 device.CreateTexture2D(textureDescription, null, out var texture2d);
 
@@ -297,7 +302,7 @@ internal sealed class ScreenCapturer : IScreenCapturer
                 default:
                     break;
             }
-            return CaptureResult.Ok(bitmap, true);
+            return CaptureResult.Ok(bitmap, true, dirtyRects);
         }
         catch (COMException ex) when (ex.Message.StartsWith("The timeout value has elapsed"))
         {
@@ -316,5 +321,35 @@ internal sealed class ScreenCapturer : IScreenCapturer
             }
             catch { }
         }
+    }
+
+    private unsafe RECT[] GetDirtyRects(IDXGIOutputDuplication outputDuplication)
+    {
+        var rectSize = (uint)sizeof(RECT);
+        uint bufferSizeNeeded = 0;
+
+        try
+        {
+            outputDuplication.GetFrameDirtyRects(0, out _, out bufferSizeNeeded);
+        }
+        catch { }
+
+        if (bufferSizeNeeded == 0)
+        {
+            return [];
+        }
+
+        var numRects = (int)(bufferSizeNeeded / rectSize);
+        var dirtyRects = new RECT[numRects];
+
+        RECT* dirtyRectsPtr = stackalloc RECT[numRects];
+        outputDuplication.GetFrameDirtyRects(bufferSizeNeeded, dirtyRectsPtr, out _);
+
+        for (var i = 0; i < numRects; i++)
+        {
+            dirtyRects[i] = dirtyRectsPtr[i];
+        }
+
+        return dirtyRects;
     }
 }

@@ -18,6 +18,7 @@ public sealed class CaptureResult : IDisposable
     [MemberNotNull(nameof(Bitmap))]
     public bool IsSuccess { get; init; }
     public bool IsUsingGpu { get; init; }
+    internal RECT[] DirtyRects { get; init; } = [];
 
     public void Dispose()
     {
@@ -76,13 +77,14 @@ public sealed class CaptureResult : IDisposable
         };
     }
 
-    internal static CaptureResult Ok(Bitmap bitmap, bool isUsingGpu)
+    internal static CaptureResult Ok(Bitmap bitmap, bool isUsingGpu, RECT[]? dirtyRects = default)
     {
         return new CaptureResult()
         {
             Bitmap = bitmap,
             IsSuccess = true,
-            IsUsingGpu = isUsingGpu
+            IsUsingGpu = isUsingGpu,
+            DirtyRects = dirtyRects ?? []
         };
     }
 }
