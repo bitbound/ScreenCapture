@@ -10,6 +10,7 @@ using Bitbound.ScreenCapture.Windows.Benchmarks;
 //Console.WriteLine($"{summary}");
 
 var test = new CaptureTests();
-test.DoCaptures();
-test.DoEncoding();
-test.DoCaptureEncodeAndDiff();
+//test.DoCaptures();
+//test.DoEncoding();
+//test.DoCaptureEncodeAndDiff();
+test.DoDiffSizeComparison();

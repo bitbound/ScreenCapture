@@ -107,4 +107,92 @@ public sealed class CaptureTests
         var fps = Math.Round(count / sw.Elapsed.TotalSeconds);
         Console.WriteLine($"Capture + Encode + Diff FPS: {fps}");
     }
+
+    public void DoDiffSizeComparison()
+    {
+        var count = 300;
+        var sw = Stopwatch.StartNew();
+        var display1 = _displays.First(x => x.DeviceName == "\\\\.\\DISPLAY1");
+        CaptureResult? lastResult = null;
+        byte[] bytes = [];
+        double gpuDiffSize = 0;
+        double gpuTotalFrames = 0;
+
+        double cpuDiffSize = 0;
+        double cpuTotalFrames = 0;
+
+        for (var i = 0; i < count; i++)
+        {
+            var result = _capturer.Capture(display1, true, tryUseDirectX: true, allowFallbackToBitBlt: false);
+            if (!result.IsSuccess)
+            {
+                continue;
+            }
+
+            try
+            {
+                foreach (var dirtyRect in result.DirtyRects)
+                {
+                    using var cropped = _bitmapUtility.CropBitmap(result.Bitmap, dirtyRect);
+                    bytes = _bitmapUtility.Encode(cropped, ImageFormat.Jpeg);
+                    gpuDiffSize += bytes.Length;
+                    gpuTotalFrames++;
+                }
+
+                if (result.IsUsingGpu)
+                {
+                    
+                }
+                else
+                {
+                   
+                }
+
+            }
+            finally
+            {
+                lastResult?.Dispose();
+                lastResult = result;
+            }
+        }
+
+        for (var i = 0; i < count; i++)
+        {
+            var result = _capturer.Capture(display1, true, tryUseDirectX: true, allowFallbackToBitBlt: false);
+            if (!result.IsSuccess)
+            {
+                continue;
+            }
+
+            try
+            {
+                var diffArea = _bitmapUtility.GetChangedArea(result.Bitmap, lastResult?.Bitmap);
+                if (!diffArea.IsSuccess)
+                {
+                    continue;
+                }
+
+                if (diffArea.Value.IsEmpty)
+                {
+                    continue;
+                }
+
+                using var cropped = _bitmapUtility.CropBitmap(result.Bitmap, diffArea.Value);
+                bytes = _bitmapUtility.Encode(cropped, ImageFormat.Jpeg);
+                cpuDiffSize += bytes.Length;
+                cpuTotalFrames++;
+            }
+            finally
+            {
+                lastResult?.Dispose();
+                lastResult = result;
+            }
+        }
+
+        var gpuDiffPerFrame = Math.Round(gpuDiffSize / gpuTotalFrames);
+        var cpuDiffPerFrame = Math.Round(cpuDiffSize / cpuTotalFrames);
+
+        Console.WriteLine($"GPU Frames: {gpuTotalFrames} | GPU Size per Frame: {gpuDiffPerFrame}");
+        Console.WriteLine($"CPU Frames: {cpuTotalFrames} | CPU Size per Frame: {cpuDiffPerFrame}");
+    }
 }
