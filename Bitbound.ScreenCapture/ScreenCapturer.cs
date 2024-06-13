@@ -262,8 +262,15 @@ internal sealed class ScreenCapturer : IScreenCapturer
             {
                 dirtyRects = GetDirtyRects(outputDuplication);
 
-                var textureDescription = DxTextureHelper.Create2dTextureDescription(bounds.Width, bounds.Height);
-                device.CreateTexture2D(textureDescription, null, out var texture2d);
+                var textureDescription = DxTextureHelper.Create2dTextureDescription(bounds.Width, bounds.Height);             
+                ID3D11Texture2D_unmanaged* texture2dPtr;
+                device.CreateTexture2D(textureDescription, null, &texture2dPtr);
+
+                if (Marshal.GetObjectForIUnknown(new nint(texture2dPtr)) is not ID3D11Texture2D texture2d)
+                {
+                    texture2dPtr->Release();
+                    return CaptureResult.Fail("Failed to create DirectX Texture.");
+                }
 
                 deviceContext.CopyResource(texture2d, (ID3D11Texture2D)screenResource);
 
@@ -283,6 +290,8 @@ internal sealed class ScreenCapturer : IScreenCapturer
                 bitmap.UnlockBits(bitmapData);
                 deviceContext.Unmap(texture2d, 0);
                 Marshal.FinalReleaseComObject(texture2d);
+                texture2dPtr->Release();
+                Marshal.FinalReleaseComObject(screenResource);
             }
 
             switch (dxOutput.Rotation)

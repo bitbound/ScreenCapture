@@ -36,7 +36,7 @@ internal static class DxOutputGenerator
                 {
                     unsafe
                     {
-                        output.GetDesc(out var outputDescription);
+                        var outputDescription = output.GetDesc();
                         var deviceName = outputDescription.DeviceName.ToString();
 
                         if (_outputs.TryGetValue(deviceName, out var cachedOutput) &&
