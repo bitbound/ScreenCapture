@@ -149,22 +149,11 @@ internal sealed class ScreenCapturer : IScreenCapturer
 
     public Rectangle GetVirtualScreenBounds()
     {
-        var displays = DisplaysEnumerationHelper.GetDisplays();
-
-        var lowestX = 0;
-        var highestX = 0;
-        var lowestY = 0;
-        var highestY = 0;
-
-        foreach (var display in displays)
-        {
-            lowestX = Math.Min(display.MonitorArea.Left, lowestX);
-            highestX = Math.Max(display.MonitorArea.Right, highestX);
-            lowestY = Math.Min(display.MonitorArea.Top, lowestY);
-            highestY = Math.Max(display.MonitorArea.Bottom, highestY);
-        }
-
-        return new Rectangle(lowestX, lowestY, highestX - lowestX, highestY - lowestY);
+        var width = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXVIRTUALSCREEN);
+        var height = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYVIRTUALSCREEN);
+        var left = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_XVIRTUALSCREEN);
+        var top = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_YVIRTUALSCREEN);
+        return new Rectangle(left, top, width, height);
     }
 
     internal CaptureResult GetBitBltCapture(Rectangle captureArea, bool captureCursor)

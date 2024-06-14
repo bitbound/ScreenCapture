@@ -11,6 +11,7 @@ public class DisplayInfo
     public nint Hmon { get; set; }
     public bool IsPrimary { get; set; }
     public Rectangle MonitorArea { get; set; }
+    public double ScaleFactor { get; set; } = 1;
     public Vector2 ScreenSize { get; set; }
     public Rectangle WorkArea { get; set; }
 }

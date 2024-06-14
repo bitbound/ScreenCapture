@@ -72,14 +72,26 @@ internal static class DisplaysEnumerationHelper
                 cb = (uint)sizeof(DISPLAY_DEVICEW)
             };
 
+            var devMode = new DEVMODEW
+            {
+                dmSize = (ushort)sizeof(DEVMODEW)
+            };
+
             foreach (var display in displays)
             {
                 if (PInvoke.EnumDisplayDevices(display.DeviceName, 0, ref displayDevice, 0))
                 {
                     display.DisplayName = $"{displayDevice.DeviceString}";
                 };
+
+                
+                if (PInvoke.EnumDisplaySettings(display.DeviceName, ENUM_DISPLAY_SETTINGS_MODE.ENUM_CURRENT_SETTINGS, ref devMode))
+                {
+                    display.ScaleFactor = devMode.dmLogPixels / 96.0;
+                }
             }
         }
+
         return displays;
     }
 
