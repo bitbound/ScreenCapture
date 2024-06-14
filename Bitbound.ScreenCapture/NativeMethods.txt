@@ -10,3 +10,4 @@ BitBlt
 CURSORINFO
 GetCursorInfo
 ReleaseDC
+EnumDisplayDevices

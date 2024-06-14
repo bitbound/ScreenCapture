@@ -26,6 +26,9 @@ using Bitbound.ScreenCapture.Models;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Gdi;
 
 namespace Bitbound.ScreenCapture.Helpers;
 
@@ -37,7 +40,8 @@ internal static class DisplaysEnumerationHelper
 
     public static IEnumerable<DisplayInfo> GetDisplays()
     {
-        var result = new List<DisplayInfo>();
+
+        var displays = new List<DisplayInfo>();
 
         EnumDisplayMonitors(nint.Zero, nint.Zero,
             delegate (nint hMonitor, nint hdcMonitor, ref RECT lprcMonitor, nint dwData)
@@ -56,11 +60,27 @@ internal static class DisplaysEnumerationHelper
                         Hmon = hMonitor,
                         DeviceName = mi.DeviceName
                     };
-                    result.Add(info);
+                    displays.Add(info);
                 }
                 return true;
             }, nint.Zero);
-        return result;
+
+        unsafe
+        {
+            var displayDevice = new DISPLAY_DEVICEW
+            {
+                cb = (uint)sizeof(DISPLAY_DEVICEW)
+            };
+
+            foreach (var display in displays)
+            {
+                if (PInvoke.EnumDisplayDevices(display.DeviceName, 0, ref displayDevice, 0))
+                {
+                    display.DisplayName = $"{displayDevice.DeviceString}";
+                };
+            }
+        }
+        return displays;
     }
 
     [DllImport("user32.dll")]
