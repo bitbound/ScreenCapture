@@ -1,4 +1,5 @@
-﻿using Bitbound.ScreenCapture.Helpers;
+﻿using Bitbound.ScreenCapture.Extensions;
+using Bitbound.ScreenCapture.Helpers;
 using Bitbound.ScreenCapture.Models;
 using Microsoft.Extensions.Logging;
 using System.Drawing;
@@ -245,7 +246,7 @@ internal sealed class ScreenCapturer : IScreenCapturer
             var bitmapData = bitmap.LockBits(bounds, ImageLockMode.WriteOnly, bitmap.PixelFormat);
             var bitmapDataPointer = bitmapData.Scan0;
 
-            RECT[] dirtyRects;
+            Rectangle[] dirtyRects;
 
             unsafe
             {
@@ -321,7 +322,7 @@ internal sealed class ScreenCapturer : IScreenCapturer
         }
     }
 
-    private unsafe RECT[] GetDirtyRects(IDXGIOutputDuplication outputDuplication)
+    private unsafe Rectangle[] GetDirtyRects(IDXGIOutputDuplication outputDuplication)
     {
         var rectSize = (uint)sizeof(RECT);
         uint bufferSizeNeeded = 0;
@@ -338,14 +339,14 @@ internal sealed class ScreenCapturer : IScreenCapturer
         }
 
         var numRects = (int)(bufferSizeNeeded / rectSize);
-        var dirtyRects = new RECT[numRects];
+        var dirtyRects = new Rectangle[numRects];
 
         RECT* dirtyRectsPtr = stackalloc RECT[numRects];
         outputDuplication.GetFrameDirtyRects(bufferSizeNeeded, dirtyRectsPtr, out _);
 
         for (var i = 0; i < numRects; i++)
         {
-            dirtyRects[i] = dirtyRectsPtr[i];
+            dirtyRects[i] = dirtyRectsPtr[i].ToRectangle();
         }
 
         return dirtyRects;
