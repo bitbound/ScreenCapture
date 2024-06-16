@@ -138,16 +138,6 @@ public sealed class CaptureTests
                     gpuDiffSize += bytes.Length;
                     gpuTotalFrames++;
                 }
-
-                if (result.IsUsingGpu)
-                {
-                    
-                }
-                else
-                {
-                   
-                }
-
             }
             finally
             {
