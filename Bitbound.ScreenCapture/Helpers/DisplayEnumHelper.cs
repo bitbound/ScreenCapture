@@ -67,24 +67,16 @@ internal static class DisplaysEnumerationHelper
 
         unsafe
         {
-            var displayDevice = new DISPLAY_DEVICEW
-            {
-                cb = (uint)sizeof(DISPLAY_DEVICEW)
-            };
-
             var devMode = new DEVMODEW
             {
                 dmSize = (ushort)sizeof(DEVMODEW)
             };
 
-            foreach (var display in displays)
+            for (var i = 0; i < displays.Count; i++)
             {
-                if (PInvoke.EnumDisplayDevices(display.DeviceName, 0, ref displayDevice, 0))
-                {
-                    display.DisplayName = $"{displayDevice.DeviceString}";
-                };
+                var display = displays[i];
+                display.DisplayName = $"Screen {i}";
 
-                
                 if (PInvoke.EnumDisplaySettings(display.DeviceName, ENUM_DISPLAY_SETTINGS_MODE.ENUM_CURRENT_SETTINGS, ref devMode))
                 {
                     display.ScaleFactor = devMode.dmLogPixels / 96.0;

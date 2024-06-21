@@ -10,6 +10,5 @@ BitBlt
 CURSORINFO
 GetCursorInfo
 ReleaseDC
-EnumDisplayDevices
 GetSystemMetrics
 EnumDisplaySettings
