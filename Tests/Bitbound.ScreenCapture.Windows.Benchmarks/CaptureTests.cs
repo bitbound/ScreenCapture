@@ -8,6 +8,7 @@ public sealed class CaptureTests
     private readonly BitmapUtility _bitmapUtility;
     private readonly IScreenCapturer _capturer;
     private readonly IEnumerable<DisplayInfo> _displays;
+    private readonly int _count = 100;
 
     public CaptureTests()
     {
@@ -20,50 +21,47 @@ public sealed class CaptureTests
     //[Benchmark(OperationsPerInvoke = 1)]
     public void DoCaptures()
     {
-        var count = 300;
         var sw = Stopwatch.StartNew();
         var display1 = _displays.First(x => x.DeviceName == "\\\\.\\DISPLAY1");
 
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < _count; i++)
         {
-            using var result = _capturer.Capture(display1, true, tryUseDirectX: true, allowFallbackToBitBlt: false);
+            using var result = _capturer.Capture(display1, true);
         }
 
-        var fps = Math.Round(count / sw.Elapsed.TotalSeconds);
+        var fps = Math.Round(_count / sw.Elapsed.TotalSeconds);
         Console.WriteLine($"Capture FPS: {fps}");
     }
 
     public void DoEncoding()
     {
-        var count = 300;
         var display1 = _displays.First(x => x.DeviceName == "\\\\.\\DISPLAY1");
-        using var result = _capturer.Capture(display1, true, tryUseDirectX: true, allowFallbackToBitBlt: true);
+        using var result = _capturer.Capture(display1, true);
         if (!result.IsSuccess)
         {
             throw new Exception("Capture failed.");
         }
 
         var sw = Stopwatch.StartNew();
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < _count; i++)
         {
             _ = _bitmapUtility.Encode(result.Bitmap, ImageFormat.Jpeg);
         }
 
-        var encodeTime = Math.Round(sw.Elapsed.TotalMilliseconds / count, 2);
+        var encodeTime = Math.Round(sw.Elapsed.TotalMilliseconds / _count, 2);
         Console.WriteLine($"Encode Time: {encodeTime}ms");
     }
 
     public void DoCaptureEncodeAndDiff()
     {
-        var count = 300;
         var sw = Stopwatch.StartNew();
         var display1 = _displays.First(x => x.DeviceName == "\\\\.\\DISPLAY1");
         CaptureResult? lastResult = null;
         byte[] bytes = [];
 
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < _count; i++)
         {
-            var result = _capturer.Capture(display1, true, tryUseDirectX: true, allowFallbackToBitBlt: true);
+            var result = _capturer.Capture(display1, true);
             if (!result.IsSuccess)
             {
                 continue;
@@ -104,13 +102,12 @@ public sealed class CaptureTests
             }
         }
 
-        var fps = Math.Round(count / sw.Elapsed.TotalSeconds);
+        var fps = Math.Round(_count / sw.Elapsed.TotalSeconds);
         Console.WriteLine($"Capture + Encode + Diff FPS: {fps}");
     }
 
     public void DoDiffSizeComparison()
     {
-        var count = 300;
         var sw = Stopwatch.StartNew();
         var display1 = _displays.First(x => x.DeviceName == "\\\\.\\DISPLAY1");
         CaptureResult? lastResult = null;
@@ -121,9 +118,9 @@ public sealed class CaptureTests
         double cpuDiffSize = 0;
         double cpuTotalFrames = 0;
 
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < _count; i++)
         {
-            var result = _capturer.Capture(display1, true, tryUseDirectX: true, allowFallbackToBitBlt: false);
+            var result = _capturer.Capture(display1, true);
             if (!result.IsSuccess)
             {
                 continue;
@@ -146,9 +143,9 @@ public sealed class CaptureTests
             }
         }
 
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < _count; i++)
         {
-            var result = _capturer.Capture(display1, true, tryUseDirectX: true, allowFallbackToBitBlt: false);
+            var result = _capturer.Capture(display1, true);
             if (!result.IsSuccess)
             {
                 continue;

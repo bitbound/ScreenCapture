@@ -1,0 +1,28 @@
+name: Publish NuGet Package
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: "Is Prerelease"
+        type: boolean
+        required: true
+        default: true
+
+permissions: write-all
+
+jobs:
+  publish:
+    uses: bitbound/workflows/.github/workflows/publish-nugets.yml@main
+    secrets: 
+      registryApiKey: ${{ secrets.NUGET_API_KEY }}
+    with:
+      projectOrSlnDir: "./Bitbound.ScreenCapture"
+      prerelease: "${{ inputs.prerelease || github.event_name != 'workflow_dispatch' }}"
+      majorVersion: 1
+      minorVersion: 2
+      runTests: true
