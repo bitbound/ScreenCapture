@@ -40,5 +40,5 @@ jobs:
       run: dotnet pack Bitbound.ScreenCapture/Bitbound.ScreenCapture.csproj --configuration Release --no-build -p:PackageVersion=${{ env.PKG_VERSION }}
     
     - name: Publish
-      if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+      if: github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch'
       run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
