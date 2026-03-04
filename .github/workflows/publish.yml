@@ -30,11 +30,11 @@ jobs:
     
     - name: Build (dev)
       if: ${{ github.event_name != 'workflow_dispatch' || inputs.prerelease }}
-      run: dotnet build Bitbound.ScreenCapture.slnx --configuration Release  -p:FileVersion="${{ env.PKG_VERSION }}" -p:AssemblyVersion="${{ env.PKG_VERSION }}" -p:VersionPrefix="${{ env.PKG_VERSION }}" -p:VersionSuffix="dev"
+      run: dotnet build Bitbound.ScreenCapture.sln --configuration Release  -p:FileVersion="${{ env.PKG_VERSION }}" -p:AssemblyVersion="${{ env.PKG_VERSION }}" -p:VersionPrefix="${{ env.PKG_VERSION }}" -p:VersionSuffix="dev"
 
     - name: Build (prod)
       if: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease == false}}
-      run: dotnet build Bitbound.ScreenCapture.slnx --configuration Release  -p:FileVersion="${{ env.PKG_VERSION }}" -p:AssemblyVersion="${{ env.PKG_VERSION }}" -p:VersionPrefix="${{ env.PKG_VERSION }}"
+      run: dotnet build Bitbound.ScreenCapture.sln --configuration Release  -p:FileVersion="${{ env.PKG_VERSION }}" -p:AssemblyVersion="${{ env.PKG_VERSION }}" -p:VersionPrefix="${{ env.PKG_VERSION }}"
 
     - name: Pack
       run: dotnet pack Bitbound.ScreenCapture/Bitbound.ScreenCapture.csproj --configuration Release --no-build -p:PackageVersion=${{ env.PKG_VERSION }}
