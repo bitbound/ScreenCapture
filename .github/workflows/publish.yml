@@ -14,15 +14,31 @@ on:
         default: true
 
 permissions: write-all
+env:
+  PKG_VERSION: "2.6.${{ github.run_number }}"
 
 jobs:
   publish:
-    uses: bitbound/workflows/.github/workflows/publish-nugets.yml@main
-    secrets: 
-      registryApiKey: ${{ secrets.NUGET_API_KEY }}
-    with:
-      projectOrSlnDir: "./Bitbound.ScreenCapture"
-      prerelease: "${{ inputs.prerelease || github.event_name != 'workflow_dispatch' }}"
-      majorVersion: 1
-      minorVersion: 2
-      runTests: true
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET SDKs
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '10.x'
+    
+    - name: Build (dev)
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.prerelease }}
+      run: dotnet build Bitbound.ScreenCapture.slnx --configuration Release  -p:FileVersion="${{ env.PKG_VERSION }}" -p:AssemblyVersion="${{ env.PKG_VERSION }}" -p:VersionPrefix="${{ env.PKG_VERSION }}" -p:VersionSuffix="dev"
+
+    - name: Build (prod)
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease == false}}
+      run: dotnet build Bitbound.ScreenCapture.slnx --configuration Release  -p:FileVersion="${{ env.PKG_VERSION }}" -p:AssemblyVersion="${{ env.PKG_VERSION }}" -p:VersionPrefix="${{ env.PKG_VERSION }}"
+
+    - name: Pack
+      run: dotnet pack Bitbound.ScreenCapture/Bitbound.ScreenCapture.csproj --configuration Release --no-build -p:PackageVersion=${{ env.PKG_VERSION }}
+    
+    - name: Publish
+      if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+      run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
